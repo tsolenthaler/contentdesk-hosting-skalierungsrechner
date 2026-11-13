@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hostpoint Skalierungspfad für Contentdesk</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --cd-blue: #0060A9;        /* Contentdesk Markenblau */
+    --cd-blue-light: #E8F1FA;
+    --cd-blue-border: #AECBEA;
+    --cd-teal: #3AA08B;        /* Komplementär für externe Dienste */
+    --cd-teal-light: #E6F4EF;
+    --cd-teal-border: #ACE0D4;
+    --cd-navy: #12395C;
+    /* Stufen-Farben (neutral, nicht alarmierend) */
+    --step1: #3AA08B;          /* Petrolgrün – entspannt */
+    --step2: #E0A63C;          /* Sanftes Bernstein – testen */
+    --step3: #0060A9;          /* Markenblau – Zielzustand */
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(180deg, #EAF1F8 0%, #F6F9FC 100%); color: #16283A; padding: 28px 20px; line-height: 1.55; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin-bottom: 6px; color: var(--cd-navy); }
+  .sub { color: #4A6076; font-size: 0.92rem; margin-bottom: 26px; }
+
+  /* ===== Pfad-Leiste ===== */
+  .path { display: flex; align-items: center; justify-content: space-between; gap: 0; margin: 30px 0 34px; position: relative; }
+  .stage-pill { width: 29%; text-align: center; padding: 16px 10px; border-radius: 14px; cursor: pointer; transition: all .2s; border: 2px solid #D3DEE8; background: #fff; position: relative; }
+  .stage-pill:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,96,169,.15); }
+  .stage-pill.active { border-color: var(--cd-blue); background: var(--cd-blue-light); }
+  .stage-pill .lvl { font-size: 0.72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #7E93A8; }
+  .stage-pill .name { font-size: 1.05rem; font-weight: 700; margin: 4px 0 2px; color: var(--cd-navy); }
+  .stage-pill .price { font-size: 0.82rem; color: #55697D; }
+  .stage-pill .load { margin-top: 8px; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; display: inline-block; color: #fff; }
+  .arrow { font-size: 1.6rem; color: #9FB9D2; flex-shrink: 0; }
+  .marker-you { position: absolute; top: -34px; font-size: 0.75rem; font-weight: 700; color: #1E7A5F; background: #DDF2E9; padding: 3px 10px; border-radius: 12px; white-space: nowrap; }
+  .legend { font-size: 0.78rem; color: #67798B; text-align: center; margin-bottom: 8px; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin: 0 4px 0 12px; }
+  .lg-g { background:var(--step1); } .lg-y { background:var(--step2); } .lg-r { background:var(--step3); }
+
+  /* ===== Detail-Panels ===== */
+  .panel { display: none; background: #fff; border-radius: 16px; padding: 26px; box-shadow: 0 2px 10px rgba(18,57,92,.08); margin-bottom: 24px; animation: fadein .25s; }
+  .panel.visible { display: block; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+  .panel h2 { font-size: 1.2rem; color: var(--cd-blue); margin-bottom: 4px; }
+  .panel .tagline { color: #55697D; font-size: 0.88rem; margin-bottom: 18px; }
+
+  .arch { display: flex; align-items: stretch; justify-content: center; gap: 0; flex-wrap: wrap; margin: 18px 0; }
+  .node { border-radius: 12px; padding: 14px 16px; text-align: center; min-width: 150px; flex: 1; max-width: 210px; }
+  .node .icon { font-size: 1.7rem; margin-bottom: 6px; }
+  .node .t { font-weight: 700; font-size: 0.92rem; color: var(--cd-navy); }
+  .node .d { font-size: 0.75rem; color: #506577; margin-top: 4px; }
+  .node-web { background: var(--cd-blue-light); border: 2px solid var(--cd-blue-border); }
+  .node-db  { background: #FDF6E3; border: 2px solid #EBD9A8; }
+  .node-os  { background: var(--cd-teal-light); border: 2px solid var(--cd-teal-border); }
+  .node-os-hp { background: #D6E7F7; border: 2px solid #7FADD6; }
+  .link { display: flex; align-items: center; padding: 0 6px; color: #8CA3B8; font-size: 0.75rem; font-weight: 600; }
+  .badge-ext { font-size: 0.68rem; background: var(--cd-teal); color:#fff; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 6px; font-weight: 700; }
+  .badge-int { font-size: 0.68rem; background: var(--cd-blue); color:#fff; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 6px; font-weight: 700; }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 16px; }
+  .fact { background: #F3F7FB; border-radius: 10px; padding: 10px 12px; font-size: 0.84rem; }
+  .fact b { color: var(--cd-blue); display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 2px; }
+
+  .trigger { margin-top: 18px; padding: 14px 16px; border-radius: 10px; background: #FDF6E3; border-left: 4px solid var(--step2); font-size: 0.86rem; }
+  .trigger b { color: #9A6F00; }
+
+  /* ===== Flex-Zweigwahl ===== */
+  .branch-toggle { display: flex; gap: 10px; margin: 14px 0; flex-wrap: wrap; }
+  .branch-btn { flex: 1; min-width: 240px; border: 2px solid #D3DEE8; border-radius: 12px; padding: 14px; cursor: pointer; background: #fff; transition: all .2s; text-align: left; }
+  .branch-btn:hover { border-color: var(--cd-blue-border); }
+  .branch-btn.sel { border-color: var(--cd-blue); background: var(--cd-blue-light); }
+  .branch-btn .bt { font-weight: 700; font-size: 0.95rem; margin-bottom: 3px; color: var(--cd-navy); }
+  .branch-btn .bd { font-size: 0.8rem; color: #55697D; }
+  .req-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
+  .req-m { background: var(--cd-blue); color: #fff; }
+  .req-s { background: var(--cd-teal); color: #fff; }
+  .branch-detail { margin-top: 12px; padding: 14px 16px; border-radius: 10px; background: var(--cd-blue-light); border-left: 4px solid var(--cd-blue); font-size: 0.87rem; display: none; }
+  .branch-detail.show { display: block; }
+
+  .cost-note { margin-top: 16px; font-size: 0.85rem; color: #33475B; background: #EFF5FA; border-radius: 10px; padding: 12px 14px; }
+  .foot { font-size: 0.75rem; color: #7E93A8; margin-top: 30px; text-align: center; }
+  @media (max-width: 640px) { .path { flex-direction: column; } .arrow { transform: rotate(90deg); } .stage-pill { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Skalierungspfad: Contentdesk PIM bei Hostpoint</h1>
+  <p class="sub">Drei Abstufungen vom Shared Hosting zum Flex Server – inklusive der Entscheidung, wo OpenSearch läuft. Positionen basieren auf dem Lastindex L aus dem Skalierungsrechner.</p>
+
+  <!-- Pfad -->
+  <div class="legend">
+    <span class="dot lg-g"></span>Petrolgrün = entspannt, nichts tun
+    <span class="dot lg-y"></span>Bernstein = nächste Stufe testen
+    <span class="dot lg-r"></span>Markenblau = Zielzustand, garantierte Ressourcen
+  </div>
+  <div class="path">
+    <div class="stage-pill active" onclick="show('st1', this)">
+      <div class="marker-you">📍 Sie sind hier · L ≈ 0.10</div>
+      <div class="lvl">Stufe 1</div>
+      <div class="name">Webhosting Standard</div>
+      <div class="price">CHF 15.90/Monat</div>
+      <div class="load" style="background:var(--step1)">Aktuell: entspannt</div>
+    </div>
+    <div class="arrow">➜</div>
+    <div class="stage-pill" onclick="show('st2', this)">
+      <div class="lvl">Stufe 2</div>
+      <div class="name">Webhosting Business</div>
+      <div class="price">CHF 29.90/Monat</div>
+      <div class="load" style="background:var(--step2)">2 × Power</div>
+    </div>
+    <div class="arrow">➜</div>
+    <div class="stage-pill" onclick="show('st3', this)">
+      <div class="lvl">Stufe 3</div>
+      <div class="name">Managed Flex Server</div>
+      <div class="price">Flex S ab CHF 140 · Flex M ab CHF 170</div>
+      <div class="load" style="background:var(--step3)">Zielzustand</div>
+    </div>
+  </div>
+
+  <!-- ===== Stufe 1 ===== -->
+  <div class="panel visible" id="st1">
+    <h2>Stufe 1 · Webhosting Standard</h2>
+    <p class="tagline">Ihre aktuelle Konfiguration – solange der Lastindex grün bleibt, nichts tun.</p>
+    <div class="arch">
+      <div class="node node-web"><div class="icon">🖥️</div><div class="t">Hostpoint Standard</div><div class="d">Shared Hosting, Best-Effort<br>100 GB NVMe · 10 MariaDB</div><span class="badge-ext">Hostpoint</span></div>
+      <div class="link">↔ PHP-FPM<br>+ MariaDB<br>(geteilt)</div>
+      <div class="node node-db"><div class="icon">🗄️</div><div class="t">MariaDB</div><div class="d">Contentdesk-Daten<br>geteilter Buffer Pool</div><span class="badge-ext">Hostpoint</span></div>
+      <div class="link">⇄<br>extern<br>Netzwerk</div>
+      <div class="node node-os"><div class="icon">🔍</div><div class="t">OpenSearch</div><div class="d">Exoscale DBaaS<br>Hobbyist-2 · 2 GB · 16 GB<br>~CHF 57/Monat</div><span class="badge-ext">Exoscale (extern)</span></div>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>Kosten</b>≈ CHF 73/Monat total (15.90 + 57)</div>
+      <div class="fact"><b>Passend für</b>L &lt; 0.50 · kleines Team · Ihr aktuelles Profil (L ≈ 0.10)</div>
+      <div class="fact"><b>Vorteil</b>Niedrigste Gesamtkosten, Exoscale-Ops unabhängig skalierbar</div>
+      <div class="fact"><b>Risiko</b>Best-Effort: Performance schwankt mit Nachbar-Kunden</div>
+    </div>
+    <div class="trigger"><b>Wechselsignal:</b> Grid lädt &gt; 2–3 s, Massenbearbeitung bricht ab, Import-Timeouts, mehrere Redakteure merken es gleichzeitig → Stufe 2 testen.</div>
+  </div>
+
+  <!-- ===== Stufe 2 ===== -->
+  <div class="panel" id="st2">
+    <h2>Stufe 2 · Webhosting Business</h2>
+    <p class="tagline">Erste Skalierung innerhalb des Shared Hostings – «2 × Power» durch weniger Mitnutzer auf demselben Server.</p>
+    <div class="arch">
+      <div class="node node-web" style="border-width:3px"><div class="icon">🖥️⚡</div><div class="t">Hostpoint Business</div><div class="d">Shared Hosting, 2 × Power<br>1000 GB NVMe · 100 MariaDB<br>weniger Kunden pro Server</div><span class="badge-ext">Hostpoint</span></div>
+      <div class="link">↔ PHP-FPM<br>+ MariaDB<br>(mehr Reserven)</div>
+      <div class="node node-db" style="border-width:3px"><div class="icon">🗄️</div><div class="t">MariaDB</div><div class="d">gleiche Architektur,<br>mehr Rechenzeit pro Kunde</div><span class="badge-ext">Hostpoint</span></div>
+      <div class="link">⇄<br>extern<br>Netzwerk</div>
+      <div class="node node-os"><div class="icon">🔍</div><div class="t">OpenSearch</div><div class="d">unverändert:<br>Exoscale Hobbyist-2</div><span class="badge-ext">Exoscale (extern)</span></div>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>Kosten</b>≈ CHF 87/Monat total (29.90 + 57) · Aufpreis nur CHF 14</div>
+      <div class="fact"><b>Passend für</b>L ≈ 0.50–0.80 · erste Symptome, noch kleine Stellschraube</div>
+      <div class="fact"><b>Vorteil</b>Günstigster Test · Umzug bei Hostpoint gratis · stündliche Backups</div>
+      <div class="fact"><b>Risiko</b>Weiterhin Best-Effort – garantierte Ressourcen kommen erst in Stufe 3</div>
+    </div>
+    <div class="trigger"><b>Wechselsignal:</b> Auch auf Business Timeouts bei Reindizierung/Imports, Lastindex &gt; 0.80 oder Bedarf an Valkey/Memcached-Caching und OpenSearch on-site → Stufe 3.</div>
+  </div>
+
+  <!-- ===== Stufe 3 ===== -->
+  <div class="panel" id="st3">
+    <h2>Stufe 3 · Managed Flex Server</h2>
+    <p class="tagline">Fix zugeteilte vCPU/RAM, Valkey/Memcached – und hier stellen sich zwei Fragen: Welcher Flex-Tarif, und woher kommt OpenSearch? Achtung: Nicht jede Variante läuft auf jedem Tarif.</p>
+    <div class="branch-toggle">
+      <button class="branch-btn sel" onclick="pickBranch(this, 'bA')">
+        <div class="bt">Variante A · OpenSearch bei Hostpoint integrieren</div>
+        <div class="bd">Managed Flex Server bietet OpenSearch als gemanagte Komponente direkt auf dem Server.</div>
+        <span class="req-tag req-m">Erfordert Flex M · ab CHF 170/Monat</span>
+      </button>
+      <button class="branch-btn" onclick="pickBranch(this, 'bB')">
+        <div class="bt">Variante B · OpenSearch weiter bei Exoscale auslagern</div>
+        <div class="bd">Die bestehende DBaaS bleibt bestehen, Contentdesk auf Flex greift übers Netzwerk zu.</div>
+        <span class="req-tag req-s">Möglich mit Flex S · ab CHF 140/Monat</span>
+      </button>
+    </div>
+
+    <!-- Variante A -->
+    <div class="branch-detail show" id="bA">
+      <div class="arch">
+        <div class="node node-web" style="max-width:260px"><div class="icon">🖥️</div><div class="t">Managed Flex Server M</div><div class="d">fixe vCPU/RAM-Zuteilung<br>Nginx/PHP · Valkey-Cache<br>MariaDB · OpenSearch</div><span class="badge-int">alles bei Hostpoint</span></div>
+        <div class="link">┌───────────┐<br>alles lokal,<br>keine Latenz<br>└───────────┘</div>
+        <div class="node node-os-hp" style="max-width:180px"><div class="icon">🔍</div><div class="t">OpenSearch</div><div class="d">gemanagt von Hostpoint,<br>auf demselben Server</div><span class="badge-int">integriert</span></div>
+      </div>
+      <div class="facts">
+        <div class="fact"><b>Tarif-Anforderung</b>Flex M (ab CHF 170/Monat) – auf Flex S ist integriertes OpenSearch nicht verfügbar</div>
+        <div class="fact"><b>Kosten</b>ab CHF 170/Monat total – Exoscale (CHF 57) entfällt, Netto-Aufpreis vs. Flex S + Exoscale: ≈ CHF −27</div>
+        <div class="fact"><b>Technik</b>Suchanfragen lokal statt übers Netzwerk → schnellere Grid-Response</div>
+        <div class="fact"><b>Betrieb</b>Ein Anbieter, eine Rechnung, ein Ansprechpartner</div>
+        <div class="fact"><b>Achtung</b>OpenSearch-Last teilt die fixe Zuteilung mit PHP/MariaDB – tarifsintern bedacht</div>
+      </div>
+    </div>
+
+    <!-- Variante B -->
+    <div class="branch-detail" id="bB">
+      <div class="arch">
+        <div class="node node-web"><div class="icon">🖥️</div><div class="t">Managed Flex Server S</div><div class="d">fixe vCPU/RAM<br>Nginx/PHP · Valkey · MariaDB</div><span class="badge-ext">Hostpoint</span></div>
+        <div class="link">⇄<br>extern<br>Netzwerk</div>
+        <div class="node node-os" style="border-width:3px"><div class="icon">🔍</div><div class="t">Exoscale DBaaS</div><div class="d">Hobbyist-2, bei Bedarf<br>1 Klick auf Startup-4 upgraden</div><span class="badge-ext">Exoscale (extern)</span></div>
+      </div>
+      <div class="facts">
+        <div class="fact"><b>Tarif-Anforderung</b>Genügt Flex S (ab CHF 140/Monat) – OpenSearch läuft extern und verbraucht keine Server-Ressourcen</div>
+        <div class="fact"><b>Kosten</b>ab CHF 140 + CHF 57 Exoscale ≈ CHF 197/Monat total (oder mehr bei Startup-4)</div>
+        <div class="fact"><b>Technik</b>OpenSearch-Ressourcen entkoppelt – PHP/DB haben die ganze Flex-S-Zuteilung für sich</div>
+        <div class="fact"><b>Betrieb</b>Separates Monitoring, Snapshots und horizontale Skalierung bei Exoscale möglich</div>
+        <div class="fact"><b>Achtung</b>Netzwerklatenz & Dependency auf zweiten Anbieter bleibt bestehen</div>
+      </div>
+    </div>
+
+    <div class="cost-note"><b>💡 Entscheidungsregel:</b> Wählen Sie <b>Variante A</b>, wenn Sie Flex M sowieso brauchen (mehr garantierte Ressourcen) und Einfachheit zählt – integriertes OpenSearch ist auf Flex M inkludiert, und gegenüber Flex S + Exoscale sparen Sie sogar rund CHF 27/Monat. Bleibt der Index klein (wie bei Ihrem Profil: ~450 Felder, ~1–3 GB), ist das der ruhigste Setup. Wählen Sie <b>Variante B</b>, wenn der Einstieg über Flex S ausreichen soll und die OpenSearch-Ressourcen unabhängig von den Web-Ressourcen wachsen dürfen – allerdings summieren sich Flex S + Exoscale auf ≈ CHF 197 und liegen damit leicht über Flex M. Bei Ihrem kleinen Index (O ≈ 0.53, Hobbyist-2 genügt) ist der pragmatische Weg therefore: Flex S + Exoscale jetzt, Umstieg auf Flex M mit integriertem OpenSearch erst wenn der Index oder die Last wachsen.</div>
+  </div>
+
+  <div class="foot">Flex-Tarife: Flex S ab CHF 140/Monat, Flex M ab CHF 170/Monat – integriertes OpenSearch nur ab Flex M · Farben orientiert an contentdesk.io (Näherung) · Positionen basieren auf dem Lastindex-Modell (L) · Stand: Nov 2026</div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  document.getElementById(id).classList.add('visible');
+  document.querySelectorAll('.stage-pill').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+}
+function pickBranch(btn, id) {
+  document.querySelectorAll('.branch-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.querySelectorAll('.branch-detail').forEach(d => d.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+}
+</script>
+</body>
+</html>
