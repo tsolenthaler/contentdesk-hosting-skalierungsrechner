@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contentdesk Hosting-Skalierungsrechner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f4fa; color: #1a1a2e; padding: 24px; line-height: 1.5; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  .sub { color: #555; font-size: 0.9rem; margin-bottom: 20px; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  h2 { font-size: 1.05rem; margin-bottom: 12px; color: #6d4aff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  label { display: block; font-size: 0.78rem; font-weight: 600; color: #444; margin-bottom: 3px; }
+  label span { font-weight: 400; color: #888; }
+  input { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.95rem; }
+  input:focus { outline: 2px solid #6d4aff; border-color: transparent; }
+  .gauge { height: 18px; border-radius: 9px; overflow: hidden; display: flex; margin: 14px 0 6px; }
+  .gauge div { height: 100%; }
+  .zone-green { flex: 5; background: #3fb68b; }
+  .zone-yellow { flex: 3; background: #f0b429; }
+  .zone-red { flex: 2; background: #e5484d; }
+  .marker { position: relative; height: 0; }
+  .marker span { position: absolute; top: -22px; transform: translateX(-50%); font-size: 1rem; }
+  .result-line { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+  .big { font-size: 1.9rem; font-weight: 700; }
+  .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; color: #fff; }
+  .bg-green { background: #3fb68b; } .bg-yellow { background: #f0b429; } .bg-red { background: #e5484d; }
+  .zwischen { font-size: 0.82rem; color: #666; margin-top: 8px; }
+  .empfehlung { margin-top: 12px; padding: 12px 14px; border-radius: 8px; font-size: 0.9rem; }
+  .emp-green { background: #e6f7f0; border-left: 4px solid #3fb68b; }
+  .emp-yellow { background: #fdf6e3; border-left: 4px solid #f0b429; }
+  .emp-red { background: #fdeaea; border-left: 4px solid #e5484d; }
+  .note { font-size: 0.78rem; color: #777; margin-top: 10px; font-style: italic; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 8px; }
+  td, th { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; }
+  th { color: #6d4aff; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Contentdesk Hosting-Skalierungsrechner</h1>
+  <p class="sub">Heuristik-Modell für Hostpoint Shared Hosting + Exoscale OpenSearch. Alle Referenzwerte sind Erfahrungsschätzungen, keine offiziellen Limits.</p>
+
+  <div class="card">
+    <h2>Eingaben</h2>
+    <div class="grid">
+      <div><label>Produkte (SKUs)</label><input type="number" id="prod" value="4706" min="1"></div>
+      <div><label>Produktfamilien</label><input type="number" id="fam" value="500" min="0"></div>
+      <div><label>Attribute – einfach</label><input type="number" id="attSimple" value="180" min="0"></div>
+      <div><label>Attribute – nur localizable</label><input type="number" id="attLoc" value="41" min="0"></div>
+      <div><label>Attribute – nur scopable</label><input type="number" id="attScope" value="33" min="0"></div>
+      <div><label>Attribute – beides (loc + scop)</label><input type="number" id="attBoth" value="0" min="0"></div>
+      <div><label>Locales</label><input type="number" id="loc" value="4" min="1"></div>
+      <div><label>Channels</label><input type="number" id="chan" value="3" min="1"></div>
+      <div><label>Gleichzeitige Redakteure</label><input type="number" id="users" value="2" min="1"></div>
+      <div><label>Durchschn. Dokumentgrösse <span>(KB)</span></label><input type="number" id="docKb" value="100" min="1"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Zwischengrössen</h2>
+    <table id="zwTable">
+      <tr><th>Grösse</th><th>Formel</th><th style="text-align:right">Wert</th></tr>
+      <tr><td>Index-Felder F</td><td>einfach + loc×Locales + scop×Channels + beides×Locales×Channels</td><td class="num" id="outF">–</td></tr>
+      <tr><td>Attributzellen C</td><td>Produkte × F</td><td class="num" id="outC">–</td></tr>
+      <tr><td>Geschätzte Indexgrösse</td><td>Produkte × Dokumentgrösse</td><td class="num" id="outIdx">–</td></tr>
+      <tr><td>Geschätzte DB-Werte</td><td>≈ C × 1.2 (Puffer für Metadaten)</td><td class="num" id="outDb">–</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Webhosting-Lastindex L</h2>
+    <div class="result-line">
+      <div class="big" id="outL">–</div>
+      <div class="badge" id="badgeL">–</div>
+    </div>
+    <div class="gauge"><div class="zone-green"></div><div class="zone-yellow"></div><div class="zone-red"></div></div>
+    <div class="marker"><span id="markerL" style="left:0%">▼</span></div>
+    <div class="zwischen">Zonen: bis 0.50 Standard ok · 0.50–0.80 Business testen · über 0.80 Managed Flex</div>
+    <div class="empfehlung" id="empL">–</div>
+    <div class="note">L = 0.40·(C/10 Mio) + 0.25·(SKUs/30'000) + 0.20·(Redakteure/3) + 0.15·(F/1'000)<br>
+    Gewichtung: Attributzellen dominieren (Formular- &amp; Grid-Last), gefolgt von Datenmenge, Parallelität und Mapping-Komplexität.</div>
+  </div>
+
+  <div class="card">
+    <h2>OpenSearch-Lastindex O</h2>
+    <div class="result-line">
+      <div class="big" id="outO">–</div>
+      <div class="badge" id="badgeO">–</div>
+    </div>
+    <div class="gauge"><div class="zone-green"></div><div class="zone-yellow"></div><div class="zone-red"></div></div>
+    <div class="marker"><span id="markerO" style="left:0%">▼</span></div>
+    <div class="zwischen">Zonen: bis 0.60 Hobbyist-2 ok · 0.60–0.90 Startup-4 planen · über 0.90 Startup-4 nötig</div>
+    <div class="empfehlung" id="empO">–</div>
+    <div class="note">O = max(F/1'000 · 1.2, Indexgrösse/10 GB) — der Faktor 1.2 beim Feldanteil berücksichtigt den überdurchschnittlichen Heap-Hunger vieler Mappings auf nur ~1 GB Heap.</div>
+  </div>
+
+  <div class="card">
+    <h2>Referenzwerte &amp; Annahmen (anpassbar im Code)</h2>
+    <table>
+      <tr><th>Parameter</th><th>Wert</th><th>Begründung</th></tr>
+      <tr><td>Feldlimit OpenSearch</td><td>1'000</td><td>Default index.mapping.total_fields.limit</td></tr>
+      <tr><td>Sichere SKUs auf Standard</td><td>30'000</td><td>Erfahrungswert Shared Hosting, schlankes Modell</td></tr>
+      <tr><td>Sichere Attributzellen</td><td>10 Mio</td><td>Formular-/Grid-Last auf geteilter MariaDB</td></tr>
+      <tr><td>Komfort-Redakteure</td><td>3</td><td>Gleichzeitige PHP-Prozesse auf Shared Hosting</td></tr>
+      <tr><td>Sichere Indexgrösse</td><td>10 GB</td><td>Reserve auf 16-GB-Volume für Segmente/Translog</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function calc() {
+  const prod = +document.getElementById('prod').value || 0;
+  const attSimple = +document.getElementById('attSimple').value || 0;
+  const attLoc = +document.getElementById('attLoc').value || 0;
+  const attScope = +document.getElementById('attScope').value || 0;
+  const attBoth = +document.getElementById('attBoth').value || 0;
+  const loc = +document.getElementById('loc').value || 1;
+  const chan = +document.getElementById('chan').value || 1;
+  const users = +document.getElementById('users').value || 1;
+  const docKb = +document.getElementById('docKb').value || 100;
+
+  // Zwischengrössen
+  const F = attSimple + attLoc * loc + attScope * chan + attBoth * loc * chan;
+  const C = prod * F;
+  const idxGb = prod * docKb / 1024 / 1024; // KB -> GB
+  const dbRows = C * 1.2;
+
+  document.getElementById('outF').textContent = Math.round(F).toLocaleString('de-CH');
+  document.getElementById('outC').textContent = Math.round(C).toLocaleString('de-CH');
+  document.getElementById('outIdx').textContent = idxGb.toLocaleString('de-CH', {maximumFractionDigits: 2}) + ' GB';
+  document.getElementById('outDb').textContent = Math.round(dbRows).toLocaleString('de-CH') + ' Zeilen';
+
+  // Webhosting-Lastindex
+  const L = 0.40 * (C / 10e6) + 0.25 * (prod / 30000) + 0.20 * (users / 3) + 0.15 * (F / 1000);
+  // OpenSearch-Lastindex
+  const O = Math.max((F / 1000) * 1.2, idxGb / 10);
+
+  function render(prefix, val, zones, badges, emps) {
+    const clamped = Math.min(val, 1);
+    document.getElementById('out' + prefix).textContent = val.toFixed(2);
+    const marker = document.getElementById('marker' + prefix);
+    marker.style.left = (clamped * 100) + '%';
+    let cls, badgeTxt, emp;
+    if (val < zones[0]) { cls = 'green'; badgeTxt = badges[0]; emp = emps[0]; }
+    else if (val < zones[1]) { cls = 'yellow'; badgeTxt = badges[1]; emp = emps[1]; }
+    else { cls = 'red'; badgeTxt = badges[2]; emp = emps[2]; }
+    const b = document.getElementById('badge' + prefix);
+    b.textContent = badgeTxt;
+    b.className = 'badge bg-' + cls;
+    const e = document.getElementById('emp' + prefix);
+    e.textContent = emp;
+    e.className = 'empfehlung emp-' + cls;
+  }
+
+  render('L', L, [0.5, 0.8],
+    ['Standard ok', 'Business testen', 'Managed Flex'],
+    ['✓ Webhosting Standard genügt. Beobachten Sie Grid-Ladezeiten und Import-Stabilität.',
+     '⚠ Erste Engpässe wahrscheinlich. Business-Upgrade (2x Power, CHF 29.90/Monat) als nächsten Schritt testen – Umzug bei Hostpoint gratis.',
+     '✗ Shared Hosting überlastet. Managed Flex Server mit garantierten vCPU/RAM, Valkey-Caching und gemanagtem OpenSearch einplanen.']);
+
+  render('O', O, [0.6, 0.9],
+    ['Hobbyist-2 ok', 'Startup-4 planen', 'Startup-4 nötig'],
+    ['✓ Exoscale Hobbyist-2 (2 GB RAM, 16 GB) genügt dauerhaft für dieses Profil.',
+     '⚠ Mapping-Heap oder Indexgrösse nähern sich den Grenzen. Startup-4 (4 GB / 80 GB, ~CHF 136/Monat) mittelfristig einplanen.',
+     '✗ Hobbyist-2 kritisch: Too-many-fields-Heap-Druck oder Volume-Grenze. Upgrade auf Startup-4, alternatively Felder im Index reduzieren.']);
+}
+
+document.querySelectorAll('input').forEach(el => el.addEventListener('input', calc));
+calc();
+</script>
+</body>
+</html>
