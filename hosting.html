@@ -27,18 +27,29 @@
   /* ===== Pfad-Leiste ===== */
   .path { display: flex; align-items: center; justify-content: space-between; gap: 0; margin: 30px 0 34px; position: relative; }
   .stage-pill { width: 29%; text-align: center; padding: 16px 10px; border-radius: 14px; cursor: pointer; transition: all .2s; border: 2px solid #D3DEE8; background: #fff; position: relative; }
+  button.stage-pill { color: inherit; font: inherit; }
   .stage-pill:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,96,169,.15); }
   .stage-pill.active { border-color: var(--cd-blue); background: var(--cd-blue-light); }
+  .stage-pill:focus-visible, .branch-btn:focus-visible { outline: 3px solid var(--cd-blue); outline-offset: 3px; }
   .stage-pill .lvl { font-size: 0.72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #7E93A8; }
   .stage-pill .name { font-size: 1.05rem; font-weight: 700; margin: 4px 0 2px; color: var(--cd-navy); }
   .stage-pill .price { font-size: 0.82rem; color: #55697D; }
   .stage-pill .load { margin-top: 8px; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; display: inline-block; color: #fff; }
   .arrow { font-size: 1.6rem; color: #9FB9D2; flex-shrink: 0; }
   .marker-you { position: absolute; top: -34px; font-size: 0.75rem; font-weight: 700; color: #1E7A5F; background: #DDF2E9; padding: 3px 10px; border-radius: 12px; white-space: nowrap; }
-  .legend { font-size: 0.78rem; color: #67798B; text-align: center; margin-bottom: 8px; }
-  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin: 0 4px 0 12px; }
-  .lg-g { background:var(--step1); } .lg-y { background:var(--step2); } .lg-r { background:var(--step3); }
-
+  .recommendation { background: #E6F4EF; border-left: 4px solid var(--step1); border-radius: 10px; padding: 16px 18px; margin: 20px 0; }
+  .recommendation h2 { font-size: 1.05rem; color: var(--cd-navy); margin-bottom: 4px; }
+  .recommendation p { font-size: 0.92rem; }
+  .recommendation .note { font-size: 0.78rem; color: #506577; margin-top: 6px; }
+  .comparison { overflow-x: auto; margin: 20px 0 28px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(18,57,92,.08); }
+  .comparison table { width: 100%; min-width: 700px; border-collapse: collapse; font-size: 0.84rem; }
+  .comparison th, .comparison td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid #E5EDF4; }
+  .comparison th { color: var(--cd-navy); background: #F3F7FB; font-size: 0.78rem; }
+  .comparison tr:last-child td { border-bottom: 0; }
+  .comparison td:first-child { font-weight: 700; color: var(--cd-navy); white-space: nowrap; }
+  .comparison .price-cell { white-space: nowrap; font-weight: 700; }
+  .plain-note { margin: 14px 0; padding: 12px 14px; border-radius: 10px; background: #EFF5FA; font-size: 0.86rem; color: #33475B; }
+  .plain-note b { color: var(--cd-blue); }
   /* ===== Detail-Panels ===== */
   .panel { display: none; background: #fff; border-radius: 16px; padding: 26px; box-shadow: 0 2px 10px rgba(18,57,92,.08); margin-bottom: 24px; animation: fadein .25s; }
   .panel.visible { display: block; }
@@ -69,6 +80,7 @@
   /* ===== Flex-Zweigwahl ===== */
   .branch-toggle { display: flex; gap: 10px; margin: 14px 0; flex-wrap: wrap; }
   .branch-btn { flex: 1; min-width: 240px; border: 2px solid #D3DEE8; border-radius: 12px; padding: 14px; cursor: pointer; background: #fff; transition: all .2s; text-align: left; }
+  .branch-btn { color: inherit; font: inherit; }
   .branch-btn:hover { border-color: var(--cd-blue-border); }
   .branch-btn.sel { border-color: var(--cd-blue); background: var(--cd-blue-light); }
   .branch-btn .bt { font-weight: 700; font-size: 0.95rem; margin-bottom: 3px; color: var(--cd-navy); }
@@ -80,6 +92,10 @@
   .branch-detail.show { display: block; }
 
   .cost-note { margin-top: 16px; font-size: 0.85rem; color: #33475B; background: #EFF5FA; border-radius: 10px; padding: 12px 14px; }
+  details.technical { margin: 14px 0; border: 1px solid #DCE7F0; border-radius: 10px; padding: 10px 14px; background: #FAFCFE; }
+  details.technical summary { cursor: pointer; color: var(--cd-blue); font-weight: 700; font-size: 0.86rem; }
+  details.technical[open] summary { margin-bottom: 10px; }
+  [hidden] { display: none !important; }
   .foot { font-size: 0.75rem; color: #7E93A8; margin-top: 30px; text-align: center; }
   @media (max-width: 640px) { .path { flex-direction: column; } .arrow { transform: rotate(90deg); } .stage-pill { width: 100%; } }
 </style>
@@ -87,145 +103,176 @@
 <body>
 <div class="wrap">
   <h1>Skalierungspfad: Contentdesk PIM bei Hostpoint</h1>
-  <p class="sub">Drei Abstufungen vom Shared Hosting zum Flex Server – inklusive der Entscheidung, wo OpenSearch läuft. Positionen basieren auf dem Lastindex L aus dem Skalierungsrechner.</p>
+  <p class="sub">Welche Hosting-Stufe passt zu Ihrer Nutzung? Hier sehen Sie, was sich im Alltag ändert, wann ein Wechsel sinnvoll ist und welche Kosten ungefähr entstehen.</p>
 
-  <!-- Pfad -->
-  <div class="legend">
-    <span class="dot lg-g"></span>Petrolgrün = entspannt, nichts tun
-    <span class="dot lg-y"></span>Bernstein = nächste Stufe testen
-    <span class="dot lg-r"></span>Markenblau = Zielzustand, garantierte Ressourcen
+  <section class="recommendation" aria-labelledby="recommendation-title">
+    <h2 id="recommendation-title">Unsere Einschätzung: Aktuell reicht Stufe 1 voraussichtlich aus</h2>
+    <p>Für das hier eingetragene Profil zeigt das Schätzmodell eine niedrige Last. Solange Contentdesk im Alltag flüssig läuft und Importe zuverlässig abgeschlossen werden, müssen Sie nicht wechseln. Stufe 2 ist ein günstiger Zwischenschritt bei ersten Engpässen. Stufe 3 bietet fest zugeteilte Serverleistung, wenn die geteilten Angebote nicht mehr ausreichen.</p>
+    <p class="note">Der Lastindex ist eine Schätzung aus den eingegebenen Daten – keine Messung der tatsächlichen Geschwindigkeit und keine offizielle Leistungsgrenze des Anbieters.</p>
+  </section>
+
+  <h2>Die Unterschiede auf einen Blick</h2>
+  <div class="comparison">
+    <table>
+      <thead>
+        <tr><th>Stufe</th><th>Einfach gesagt</th><th>Was bedeutet das im Alltag?</th><th>Wann passt sie?</th><th>Geschätzte Gesamtkosten/Monat</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1 · Standard</td><td>Sie teilen die Serverleistung mit anderen Kunden.</td><td>Günstig; die Geschwindigkeit kann je nach Auslastung schwanken.</td><td>Wenn die Anwendung flüssig läuft.</td><td class="price-cell">ca. CHF 73¹</td></tr>
+        <tr><td>2 · Business</td><td>Mehr Leistungsreserven, weiterhin gemeinsam genutzter Server.</td><td>Kann erste Engpässe abfedern; eine feste Leistungszusage gibt es weiterhin nicht.</td><td>Wenn es gelegentlich langsamer wird und Sie zuerst die günstigere Stufe testen möchten.</td><td class="price-cell">ca. CHF 87¹</td></tr>
+        <tr><td>3 · Flex</td><td>Ein Teil der Serverleistung ist fest für Sie reserviert.</td><td>Planbarere Leistung für die Anwendung; kostet mehr.</td><td>Wenn Stufe 2 nicht reicht oder die Leistung verlässlicher planbar sein muss.</td><td class="price-cell">A: ca. CHF 170¹<br>B: ca. CHF 197¹</td></tr>
+      </tbody>
+    </table>
   </div>
+  <p class="plain-note"><b>Was ist OpenSearch?</b> Ein zusätzlicher Dienst, der die Produktsuche und Datenübersichten unterstützt. Er kann beim Flex Server direkt bei Hostpoint oder weiterhin getrennt bei Exoscale laufen. Die Wahl beeinflusst Preis und Aufteilung der Serverleistung – die Varianten stehen bei Stufe 3.</p>
+
   <div class="path">
-    <div class="stage-pill active" onclick="show('st1', this)">
-      <div class="marker-you">📍 Sie sind hier · L ≈ 0.10</div>
+    <button class="stage-pill active" type="button" aria-controls="st1" aria-expanded="true" onclick="show('st1', this)">
+      <div class="marker-you">Aktuell empfohlen</div>
       <div class="lvl">Stufe 1</div>
       <div class="name">Webhosting Standard</div>
-      <div class="price">CHF 15.90/Monat</div>
-      <div class="load" style="background:var(--step1)">Aktuell: entspannt</div>
-    </div>
-    <div class="arrow">➜</div>
-    <div class="stage-pill" onclick="show('st2', this)">
+      <div class="price">ca. CHF 73/Monat insgesamt</div>
+      <div class="load" style="background:var(--step1)">Günstig · geteilt</div>
+    </button>
+    <div class="arrow" aria-hidden="true">➜</div>
+    <button class="stage-pill" type="button" aria-controls="st2" aria-expanded="false" onclick="show('st2', this)">
       <div class="lvl">Stufe 2</div>
       <div class="name">Webhosting Business</div>
-      <div class="price">CHF 29.90/Monat</div>
-      <div class="load" style="background:var(--step2)">2 × Power</div>
-    </div>
-    <div class="arrow">➜</div>
-    <div class="stage-pill" onclick="show('st3', this)">
+      <div class="price">ca. CHF 87/Monat insgesamt</div>
+      <div class="load" style="background:var(--step2)">Mehr Reserven · geteilt</div>
+    </button>
+    <div class="arrow" aria-hidden="true">➜</div>
+    <button class="stage-pill" type="button" aria-controls="st3" aria-expanded="false" onclick="show('st3', this)">
       <div class="lvl">Stufe 3</div>
       <div class="name">Managed Flex Server</div>
-      <div class="price">Flex S ab CHF 140 · Flex M ab CHF 170</div>
-      <div class="load" style="background:var(--step3)">Zielzustand</div>
-    </div>
+      <div class="price">ab CHF 170/Monat insgesamt¹</div>
+      <div class="load" style="background:var(--step3)">Leistung fest zugeteilt</div>
+    </button>
   </div>
 
   <!-- ===== Stufe 1 ===== -->
-  <div class="panel visible" id="st1">
-    <h2>Stufe 1 · Webhosting Standard</h2>
-    <p class="tagline">Ihre aktuelle Konfiguration – solange der Lastindex grün bleibt, nichts tun.</p>
-    <div class="arch">
+  <div class="panel visible" id="st1" aria-labelledby="st1-title">
+    <h2 id="st1-title">Stufe 1 · Webhosting Standard</h2>
+    <p class="tagline">Der günstige Einstieg. Sie teilen die Serverleistung mit anderen Kunden; für das aktuelle Profil ist diese Stufe voraussichtlich ausreichend.</p>
+    <div class="facts">
+      <div class="fact"><b>Kosten insgesamt</b>Ca. CHF 73/Monat: Hostpoint CHF 15.90 + Exoscale ca. CHF 57</div>
+      <div class="fact"><b>Im Alltag</b>Günstig für kleine Teams und solange Seiten, Bearbeitung und Importe flüssig laufen.</div>
+      <div class="fact"><b>Zu beachten</b>Bei hoher Auslastung kann es langsamer werden, weil Serverleistung geteilt wird.</div>
+    </div>
+    <details class="technical">
+      <summary>Technische Details zum Aufbau</summary>
+      <div class="arch">
       <div class="node node-web"><div class="icon">🖥️</div><div class="t">Hostpoint Standard</div><div class="d">Shared Hosting, Best-Effort<br>100 GB NVMe · 10 MariaDB</div><span class="badge-ext">Hostpoint</span></div>
       <div class="link">↔ PHP-FPM<br>+ MariaDB<br>(geteilt)</div>
       <div class="node node-db"><div class="icon">🗄️</div><div class="t">MariaDB</div><div class="d">Contentdesk-Daten<br>geteilter Buffer Pool</div><span class="badge-ext">Hostpoint</span></div>
       <div class="link">⇄<br>extern<br>Netzwerk</div>
       <div class="node node-os"><div class="icon">🔍</div><div class="t">OpenSearch</div><div class="d">Exoscale DBaaS<br>Hobbyist-2 · 2 GB · 16 GB<br>~CHF 57/Monat</div><span class="badge-ext">Exoscale (extern)</span></div>
-    </div>
-    <div class="facts">
-      <div class="fact"><b>Kosten</b>≈ CHF 73/Monat total (15.90 + 57)</div>
-      <div class="fact"><b>Passend für</b>L &lt; 0.50 · kleines Team · Ihr aktuelles Profil (L ≈ 0.10)</div>
-      <div class="fact"><b>Vorteil</b>Niedrigste Gesamtkosten, Exoscale-Ops unabhängig skalierbar</div>
-      <div class="fact"><b>Risiko</b>Best-Effort: Performance schwankt mit Nachbar-Kunden</div>
-    </div>
-    <div class="trigger"><b>Wechselsignal:</b> Grid lädt &gt; 2–3 s, Massenbearbeitung bricht ab, Import-Timeouts, mehrere Redakteure merken es gleichzeitig → Stufe 2 testen.</div>
+      </div>
+      <p class="note">OpenSearch ist der separate Suchdienst. Die Suche läuft bei Exoscale und kommuniziert über das Internet mit dem Hostpoint-Server.</p>
+    </details>
+    <div class="trigger"><b>Wann Stufe 2 testen?</b> Wenn Produktübersichten wiederholt länger als 2–3 Sekunden laden, Massenbearbeitungen abbrechen oder Importe wegen Zeitüberschreitungen scheitern. Ein einzelner langsamer Aufruf ist noch kein zwingender Wechselgrund.</div>
   </div>
 
   <!-- ===== Stufe 2 ===== -->
-  <div class="panel" id="st2">
-    <h2>Stufe 2 · Webhosting Business</h2>
-    <p class="tagline">Erste Skalierung innerhalb des Shared Hostings – «2 × Power» durch weniger Mitnutzer auf demselben Server.</p>
-    <div class="arch">
+  <div class="panel" id="st2" aria-labelledby="st2-title" hidden>
+    <h2 id="st2-title">Stufe 2 · Webhosting Business</h2>
+    <p class="tagline">Ein günstiger Zwischenschritt: mehr Leistungsreserven als bei Standard, aber weiterhin ein gemeinsam genutzter Server.</p>
+    <div class="facts">
+      <div class="fact"><b>Kosten insgesamt</b>Ca. CHF 87/Monat: Hostpoint CHF 29.90 + Exoscale ca. CHF 57 – rund CHF 14 mehr als Stufe 1.</div>
+      <div class="fact"><b>Im Alltag</b>Kann erste Engpässe bei Bearbeitung und Importen abfedern.</div>
+      <div class="fact"><b>Zu beachten</b>Die Leistung ist weiterhin nicht fest für Sie reserviert. OpenSearch bleibt unverändert bei Exoscale.</div>
+    </div>
+    <details class="technical">
+      <summary>Technische Details zum Aufbau</summary>
+      <div class="arch">
       <div class="node node-web" style="border-width:3px"><div class="icon">🖥️⚡</div><div class="t">Hostpoint Business</div><div class="d">Shared Hosting, 2 × Power<br>1000 GB NVMe · 100 MariaDB<br>weniger Kunden pro Server</div><span class="badge-ext">Hostpoint</span></div>
       <div class="link">↔ PHP-FPM<br>+ MariaDB<br>(mehr Reserven)</div>
       <div class="node node-db" style="border-width:3px"><div class="icon">🗄️</div><div class="t">MariaDB</div><div class="d">gleiche Architektur,<br>mehr Rechenzeit pro Kunde</div><span class="badge-ext">Hostpoint</span></div>
       <div class="link">⇄<br>extern<br>Netzwerk</div>
       <div class="node node-os"><div class="icon">🔍</div><div class="t">OpenSearch</div><div class="d">unverändert:<br>Exoscale Hobbyist-2</div><span class="badge-ext">Exoscale (extern)</span></div>
-    </div>
-    <div class="facts">
-      <div class="fact"><b>Kosten</b>≈ CHF 87/Monat total (29.90 + 57) · Aufpreis nur CHF 14</div>
-      <div class="fact"><b>Passend für</b>L ≈ 0.50–0.80 · erste Symptome, noch kleine Stellschraube</div>
-      <div class="fact"><b>Vorteil</b>Günstigster Test · Umzug bei Hostpoint gratis · stündliche Backups</div>
-      <div class="fact"><b>Risiko</b>Weiterhin Best-Effort – garantierte Ressourcen kommen erst in Stufe 3</div>
-    </div>
-    <div class="trigger"><b>Wechselsignal:</b> Auch auf Business Timeouts bei Reindizierung/Imports, Lastindex &gt; 0.80 oder Bedarf an Valkey/Memcached-Caching und OpenSearch on-site → Stufe 3.</div>
+      </div>
+      <p class="note">Laut bisheriger Planung bietet Business mehr Serverreserven als Standard. Die konkrete Leistung hängt weiterhin von der geteilten Umgebung ab.</p>
+    </details>
+    <div class="trigger"><b>Wann Stufe 3 prüfen?</b> Wenn dieselben Probleme auch mit Business bestehen oder die Leistung verlässlich planbar sein muss. Der Lastindex kann ein Hinweis sein; entscheiden Sie zusätzlich anhand der tatsächlichen Ladezeiten und fehlgeschlagenen Vorgänge.</div>
   </div>
 
   <!-- ===== Stufe 3 ===== -->
-  <div class="panel" id="st3">
-    <h2>Stufe 3 · Managed Flex Server</h2>
-    <p class="tagline">Fix zugeteilte vCPU/RAM, Valkey/Memcached – und hier stellen sich zwei Fragen: Welcher Flex-Tarif, und woher kommt OpenSearch? Achtung: Nicht jede Variante läuft auf jedem Tarif.</p>
+  <div class="panel" id="st3" aria-labelledby="st3-title" hidden>
+    <h2 id="st3-title">Stufe 3 · Managed Flex Server</h2>
+    <p class="tagline">Ein Teil der Serverleistung ist fest für Sie reserviert. Das macht die Leistung planbarer. Für die Suche gibt es zwei Möglichkeiten:</p>
     <div class="branch-toggle">
-      <button class="branch-btn sel" onclick="pickBranch(this, 'bA')">
-        <div class="bt">Variante A · OpenSearch bei Hostpoint integrieren</div>
-        <div class="bd">Managed Flex Server bietet OpenSearch als gemanagte Komponente direkt auf dem Server.</div>
-        <span class="req-tag req-m">Erfordert Flex M · ab CHF 170/Monat</span>
+      <button class="branch-btn sel" id="branch-a" type="button" aria-controls="bA" aria-pressed="true" onclick="pickBranch(this, 'bA')">
+        <div class="bt">A · Einfacher Betrieb bei einem Anbieter</div>
+        <div class="bd">Die Suche läuft bei Hostpoint direkt neben Ihrer Anwendung.</div>
+        <span class="req-tag req-m">Flex M · insgesamt ab CHF 170/Monat</span>
       </button>
-      <button class="branch-btn" onclick="pickBranch(this, 'bB')">
-        <div class="bt">Variante B · OpenSearch weiter bei Exoscale auslagern</div>
-        <div class="bd">Die bestehende DBaaS bleibt bestehen, Contentdesk auf Flex greift übers Netzwerk zu.</div>
-        <span class="req-tag req-s">Möglich mit Flex S · ab CHF 140/Monat</span>
+      <button class="branch-btn" id="branch-b" type="button" aria-controls="bB" aria-pressed="false" onclick="pickBranch(this, 'bB')">
+        <div class="bt">B · Anwendung und Suche getrennt betreiben</div>
+        <div class="bd">Die Suche bleibt bei Exoscale und kann unabhängig vom Webserver wachsen.</div>
+        <span class="req-tag req-s">Flex S + Exoscale · insgesamt ca. CHF 197/Monat</span>
       </button>
     </div>
 
     <!-- Variante A -->
-    <div class="branch-detail show" id="bA">
+    <div class="branch-detail show" id="bA" aria-labelledby="branch-a">
       <div class="arch">
         <div class="node node-web" style="max-width:260px"><div class="icon">🖥️</div><div class="t">Managed Flex Server M</div><div class="d">fixe vCPU/RAM-Zuteilung<br>Nginx/PHP · Valkey-Cache<br>MariaDB · OpenSearch</div><span class="badge-int">alles bei Hostpoint</span></div>
         <div class="link">┌───────────┐<br>alles lokal,<br>keine Latenz<br>└───────────┘</div>
         <div class="node node-os-hp" style="max-width:180px"><div class="icon">🔍</div><div class="t">OpenSearch</div><div class="d">gemanagt von Hostpoint,<br>auf demselben Server</div><span class="badge-int">integriert</span></div>
       </div>
       <div class="facts">
-        <div class="fact"><b>Tarif-Anforderung</b>Flex M (ab CHF 170/Monat) – auf Flex S ist integriertes OpenSearch nicht verfügbar</div>
-        <div class="fact"><b>Kosten</b>ab CHF 170/Monat total – Exoscale (CHF 57) entfällt, Netto-Aufpreis vs. Flex S + Exoscale: ≈ CHF −27</div>
-        <div class="fact"><b>Technik</b>Suchanfragen lokal statt übers Netzwerk → schnellere Grid-Response</div>
-        <div class="fact"><b>Betrieb</b>Ein Anbieter, eine Rechnung, ein Ansprechpartner</div>
-        <div class="fact"><b>Achtung</b>OpenSearch-Last teilt die fixe Zuteilung mit PHP/MariaDB – tarifsintern bedacht</div>
+        <div class="fact"><b>Voraussetzung</b>Flex M; integriertes OpenSearch ist laut Planung auf Flex S nicht verfügbar.</div>
+        <div class="fact"><b>Kosten</b>Ab CHF 170/Monat insgesamt; Exoscale-Kosten entfallen. Gegenüber Flex S + Exoscale rund CHF 27 günstiger.</div>
+        <div class="fact"><b>Vorteil</b>Ein Anbieter und eine Rechnung; die Suche muss nicht über eine externe Verbindung erreicht werden.</div>
+        <div class="fact"><b>Zu beachten</b>Anwendung und Suche nutzen die Ressourcen desselben Servers.</div>
       </div>
     </div>
 
     <!-- Variante B -->
-    <div class="branch-detail" id="bB">
+    <div class="branch-detail" id="bB" aria-labelledby="branch-b" hidden>
       <div class="arch">
         <div class="node node-web"><div class="icon">🖥️</div><div class="t">Managed Flex Server S</div><div class="d">fixe vCPU/RAM<br>Nginx/PHP · Valkey · MariaDB</div><span class="badge-ext">Hostpoint</span></div>
         <div class="link">⇄<br>extern<br>Netzwerk</div>
         <div class="node node-os" style="border-width:3px"><div class="icon">🔍</div><div class="t">Exoscale DBaaS</div><div class="d">Hobbyist-2, bei Bedarf<br>1 Klick auf Startup-4 upgraden</div><span class="badge-ext">Exoscale (extern)</span></div>
       </div>
       <div class="facts">
-        <div class="fact"><b>Tarif-Anforderung</b>Genügt Flex S (ab CHF 140/Monat) – OpenSearch läuft extern und verbraucht keine Server-Ressourcen</div>
-        <div class="fact"><b>Kosten</b>ab CHF 140 + CHF 57 Exoscale ≈ CHF 197/Monat total (oder mehr bei Startup-4)</div>
-        <div class="fact"><b>Technik</b>OpenSearch-Ressourcen entkoppelt – PHP/DB haben die ganze Flex-S-Zuteilung für sich</div>
-        <div class="fact"><b>Betrieb</b>Separates Monitoring, Snapshots und horizontale Skalierung bei Exoscale möglich</div>
-        <div class="fact"><b>Achtung</b>Netzwerklatenz & Dependency auf zweiten Anbieter bleibt bestehen</div>
+        <div class="fact"><b>Voraussetzung</b>Flex S; die Suche bleibt beim bestehenden Exoscale-Angebot.</div>
+        <div class="fact"><b>Kosten</b>Ab CHF 140 für Flex S plus ca. CHF 57 für Exoscale, zusammen rund CHF 197/Monat. Ein Upgrade des Suchdienstes kann teurer sein.</div>
+        <div class="fact"><b>Vorteil</b>Die Suche verwendet nicht die Serverleistung des Flex-Servers und kann unabhängig davon wachsen.</div>
+        <div class="fact"><b>Zu beachten</b>Zwei Anbieter und eine Verbindung zwischen Anwendung und Suchdienst bleiben nötig.</div>
       </div>
     </div>
 
-    <div class="cost-note"><b>💡 Entscheidungsregel:</b> Wählen Sie <b>Variante A</b>, wenn Sie Flex M sowieso brauchen (mehr garantierte Ressourcen) und Einfachheit zählt – integriertes OpenSearch ist auf Flex M inkludiert, und gegenüber Flex S + Exoscale sparen Sie sogar rund CHF 27/Monat. Bleibt der Index klein (wie bei Ihrem Profil: ~450 Felder, ~1–3 GB), ist das der ruhigste Setup. Wählen Sie <b>Variante B</b>, wenn der Einstieg über Flex S ausreichen soll und die OpenSearch-Ressourcen unabhängig von den Web-Ressourcen wachsen dürfen – allerdings summieren sich Flex S + Exoscale auf ≈ CHF 197 und liegen damit leicht über Flex M. Bei Ihrem kleinen Index (O ≈ 0.53, Hobbyist-2 genügt) ist der pragmatische Weg therefore: Flex S + Exoscale jetzt, Umstieg auf Flex M mit integriertem OpenSearch erst wenn der Index oder die Last wachsen.</div>
+    <div class="cost-note"><b>Einfache Entscheidung:</b> Variante A ist günstiger und einfacher zu verwalten, wenn Flex M für Ihre Anwendung ausreicht. Variante B kostet mehr, trennt aber die Suche vom Webserver – das kann sinnvoll sein, wenn die Suche unabhängig wachsen soll. Für das aktuelle Profil zeigt das Modell keinen unmittelbaren Grund, schon jetzt zu Stufe 3 zu wechseln.</div>
   </div>
 
-  <div class="foot">Flex-Tarife: Flex S ab CHF 140/Monat, Flex M ab CHF 170/Monat – integriertes OpenSearch nur ab Flex M · Farben orientiert an contentdesk.io (Näherung) · Positionen basieren auf dem Lastindex-Modell (L) · Stand: Nov 2026</div>
+  <div class="foot">¹ Richtwerte gemäß der aktuellen Planung: Flex M ab CHF 170/Monat inklusive OpenSearch; Flex S ab CHF 140 plus ca. CHF 57 für Exoscale. Preise und Tarifdetails vor einer Entscheidung beim Anbieter prüfen. Lastindex-Schwellen sind Schätzwerte aus dem Skalierungsrechner, keine offiziellen Anbieter-Limits. Stand der Kostenschätzung: Nov 2026.</div>
 </div>
 
 <script>
 function show(id, el) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
-  document.getElementById(id).classList.add('visible');
-  document.querySelectorAll('.stage-pill').forEach(s => s.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => {
+    const active = p.id === id;
+    p.hidden = !active;
+    p.classList.toggle('visible', active);
+  });
+  document.querySelectorAll('.stage-pill').forEach(s => {
+    const active = s === el;
+    s.classList.toggle('active', active);
+    s.setAttribute('aria-expanded', String(active));
+  });
 }
 function pickBranch(btn, id) {
-  document.querySelectorAll('.branch-btn').forEach(b => b.classList.remove('sel'));
-  btn.classList.add('sel');
-  document.querySelectorAll('.branch-detail').forEach(d => d.classList.remove('show'));
-  document.getElementById(id).classList.add('show');
+  document.querySelectorAll('.branch-btn').forEach(b => {
+    const active = b === btn;
+    b.classList.toggle('sel', active);
+    b.setAttribute('aria-pressed', String(active));
+  });
+  document.querySelectorAll('.branch-detail').forEach(d => {
+    const active = d.id === id;
+    d.hidden = !active;
+    d.classList.toggle('show', active);
+  });
 }
 </script>
 </body>
